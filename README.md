@@ -34,7 +34,7 @@
 }'`
 
 
-## IMAGENES
+## Imágenes
 
 ### Test del microservicio
 ![Image](https://devopstest-imagenes-fm.s3.amazonaws.com/Screen+Shot+2023-01-27+at+00.14.11.png "Test del microservicio")
