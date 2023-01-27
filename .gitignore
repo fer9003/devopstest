@@ -1,0 +1,6 @@
+.terraform*
+terraform.tfstate*
+node_modules
+package-lock.json
+.DS_Store
+plugins.txt

@@ -1,0 +1,117 @@
+pipeline {
+    agent any
+    tools {
+        nodejs 'nodejs'
+    }
+
+    environment {
+        containerRegistry = "f90mora/devopstest"
+        registryCredentials = 'dockerhub'
+        AWS_DEFAULT_REGION = 'us-east-2' 
+        AWS_ACCESS_KEY_ID = credentials('aws_access_key_id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
+        GITHUB_REPO= "https://github.com/fer9003/devopstest.git"
+    }
+
+    stages {
+        stage('GitHub Clone project') {
+            steps {
+                echo 'Cloning Project from Github repo'
+                checkout scmGit(branches: [[name: '*/main']],
+                extensions: [],
+                userRemoteConfigs: [[url: GITHUB_REPO ]])
+            }
+        }
+
+        stage('Jest Test') {
+            steps {
+                sh 'cd microservice && npm install && npm test'     
+            }
+        }
+
+        stage('Static Code Analysis') {
+            environment {
+                scannerHome = tool 'sonarqube-scanner' /* global-config */
+            }
+
+            steps {
+                withSonarQubeEnv('sonarqube') { /* configuration server */
+                    sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=microservice \
+                    -Dsonar.projectName=microservice \
+                    -Dsonar.projectVersion=1.0 \
+                    -Dsonar.sources=microservice/ '''
+                }
+            }
+        }
+
+        
+        stage('Build Docker Image') {
+            when {
+                expression {
+                    BRANCH_NAME == "main"
+                }
+            }
+            steps {
+                dir('microservice') {
+                    script {
+                        dockerImage = docker.build containerRegistry + ":V$BUILD_NUMBER"
+                        }
+                    }
+                }     
+            }
+        
+
+        stage ('Push Docker Image') {
+            when {
+                expression {
+                    BRANCH_NAME == "main"
+                }
+            }
+            steps {
+                script {
+                    docker.withRegistry('', registryCredentials) {
+                        dockerImage.push("V$BUILD_NUMBER")
+                    }
+                }
+            }
+        }
+
+        stage ('Clone Repo Helm Chart') {
+            when {
+                expression {
+                    BRANCH_NAME == "main"
+                }
+            }
+            agent {label 'k8s'}
+            steps {
+                checkout scmGit(branches: [[name: '*/main']],
+                extensions: [], 
+                userRemoteConfigs: [[url: GITHUB_REPO ]])
+            }
+        }
+
+        stage ('Deploy to Kubernetes') {
+            when {
+                expression {
+                    BRANCH_NAME == "main"
+                }
+            }
+            agent {label 'k8s'}
+            steps {
+                script {
+                    withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONF')]) {
+                        sh """
+                        export KUBECONFIG=\${KUBECONF}
+                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+                        export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+                        aws eks list-clusters
+                        helm upgrade --install --force devopstest helm/microservice --set dockerimage=${containerRegistry}:V${BUILD_NUMBER}
+                        """
+                    }
+                    
+                }
+            }
+        }
+    }
+}

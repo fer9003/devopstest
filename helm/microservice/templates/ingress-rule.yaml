@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservice-ingress
+  annotations:
+    httpbin.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/ingress.class: "kong"
+    konghq.com/plugins: key-auth-plugin
+
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /DevOps
+        pathType: Prefix
+        backend:
+          service:
+            name: nodetest-svc
+            port:
+              number: 5000
+      - path: /DevOps/login
+        pathType: Prefix
+        backend:
+          service:
+            name: nodetest-svc
+            port:
+              number: 5000

@@ -1,0 +1,65 @@
+version : "3.7"
+networks:
+  traefik:
+services:
+  traefik:
+    restart: always
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    command: 
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web-secure.address=:443"
+      - "--certificatesresolvers.myhttpchallenge.acme.httpchallenge=true"
+      - "--certificatesresolvers.myhttpchallenge.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myhttpchallenge.acme.email=f90mora@gmail.com"
+      - "--certificatesresolvers.myhttpchallenge.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    networks:
+      - "traefik"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  jenkins:
+    container_name: jenkins
+    image: jenkins/jenkins:lts
+    #ports:
+     # - "8080:8080"
+      #- "50000:50000"
+    networks:
+      - "traefik"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+  
+  nginx:
+    image: nginx
+    volumes:
+      - ./templates:/etc/nginx/templates
+    networks:
+      - traefik
+    environment:
+      - NGINX_HOST=jenkins.sandboxenv.site
+      - NGINX_PORT=80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.jenkins.rule=Host(`jenkins.sandboxenv.site`)"
+      - "traefik.http.routers.jenkins.entrypoints=web"
+      # Redirect these routes to https
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.jenkins.middlewares=redirect-to-https@docker"
+      # Get the routes from https
+      - "traefik.http.routers.jenkins-secured.rule=Host(`jenkins.sandboxenv.site`)"
+      - "traefik.http.routers.jenkins-secured.entrypoints=web-secure"
+      # Apply autentificiation with http challenge
+      - "traefik.http.routers.jenkins-secured.tls=true"
+      - "traefik.http.routers.jenkins-secured.tls.certresolver=myhttpchallenge"
+volumes:
+  jenkins_home:

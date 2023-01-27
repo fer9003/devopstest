@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodetest
+spec:
+  selector:
+    matchLabels:
+      app: nodetest
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nodetest
+    spec:
+      containers:
+      - name: nodetest
+        image: {{ .Values.dockerimage }}
+        ports:
+        - containerPort: 5000

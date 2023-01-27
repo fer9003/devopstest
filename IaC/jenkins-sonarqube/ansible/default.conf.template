@@ -1,0 +1,10 @@
+
+server {
+    listen ${NGINX_PORT};
+    server_name ${NGINX_HOST};
+
+    location / {
+        proxy_redirect off;
+        proxy_pass http://jenkins:8080;
+    }
+}

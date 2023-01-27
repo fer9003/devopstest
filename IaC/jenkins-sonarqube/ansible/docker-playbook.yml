@@ -1,0 +1,99 @@
+
+- name: Install python3 and docker
+  hosts: all
+  become: yes
+  gather_facts: False
+  tasks:
+    - name: Make sure python3 and docker are installed
+      vars:
+        ansible_python_interpreter: /usr/bin/python
+      yum:
+        name: 
+          - python3
+          - docker
+        update_cache: yes
+        state: present
+    
+- name: Install docker compose
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Docker compose
+      get_url: 
+        url: https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: +x 
+
+- name: Enabled docker service
+  hosts: all
+  become: yes
+  tasks: 
+    - name: Enable docker service if vm is rebooted
+      systemd:
+        name: docker.service
+        daemon_reload: true
+        enabled: true
+
+
+- name: Start docker
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure docker is running
+      systemd:
+        name: docker
+        state: started 
+    - name: Install docker python module
+      pip:
+        name: 
+          - docker
+          - docker-compose
+
+- name: Add ec2-user to docker group
+  hosts: all
+  become: yes
+  tasks:
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+    - name: Reconnect to server session
+      meta: reset_connection
+
+- name: Start docker containers
+  hosts: all
+  become: yes
+  tasks:
+    - name: Create proyectos folder
+      ansible.builtin.file:
+        path: /opt/proyectos
+        state: directory
+        owner: ec2-user
+        mode: '0775'
+    
+    - name: Create letsencrypt folder
+      ansible.builtin.file:
+        path: /opt/proyectos/letsencrypt
+        state: directory
+        owner: ec2-user
+        mode: '0775'
+
+    - name: Create templates folder
+      ansible.builtin.file:
+        path: /opt/proyectos/templates
+        state: directory
+        owner: ec2-user
+        mode: '0775'
+
+    - name: Copy templates file
+      copy:
+        src: ./default.conf.template
+        dest: /opt/proyectos/templates/default.conf.template
+    - name: Copy docker compose
+      copy:
+        src: ./docker-compose.yml
+        dest: /opt/proyectos/docker-compose.yml
+    - name: Start container from compose
+      docker_compose:
+        project_src: /opt/proyectos

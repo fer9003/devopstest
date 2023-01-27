@@ -1,0 +1,15 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: key-auth-plugin
+plugin: key-auth
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: andres
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: andres
+credentials:
+  - andres-apikey

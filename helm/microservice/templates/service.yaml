@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodetest-svc
+  annotations:
+    app.dekorate.io/vcs-url: <<unknown>>
+spec:
+  selector:
+    app: nodetest
+  ports:
+    - port: 5000
+      targetPort: 5000
