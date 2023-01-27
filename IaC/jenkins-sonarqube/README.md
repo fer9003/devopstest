@@ -10,8 +10,7 @@ LAS 3 INSTANCIAS SE DESPLEGARAN EN LA REGION US-EAST-2
 2. Registar en su proveedor de hosting los NS obtenidos en Route53 
 ## REQUISITOS LLAVE SSH PRIVADA
 1. Se requiere tener una llave ssh privada si no la tiene la puede generar desde la consola web de AWS  - si ya dispone de una llave referenciar el nombre de la misma en el archivo 08.ec2-variables.tf variable instance_keypair.
-2. En el folder private-key - pegar el archivo que contiene su llave ssh privada, no olvide cambiar el permiso a la llave ssh a 400 `chmod 400 <ssh_private_key>`
-3. En el archivo generic-values.tf en la variable ssh_key_private referenciar el path absoluto local donde se encuentra almacenada la llave ssh privada "folder private-key de este proyecto de igual manera coloque el nombre de su subdominio en la variable dns_zone_name"
+2. En el archivo generic-values.tf en la variable ssh_key_private referenciar el path absoluto local donde se encuentre almacenada su llave ssh privada, de igual manera coloque el nombre de su subdominio en la variable dns_zone_name"
 ## PERSONALICE SU PROPIO SUBDOMINIO PARA LA INSTANCIA DE JENKINS
 1. En el folder ansible archivo docker-compose.yaml buscar por jenkins.sandboxenv.site todos los resultados obtenidos remplazar por su subdominio.
 ## COMANDOS DE EJECUCION
